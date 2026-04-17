@@ -15,11 +15,11 @@
         button:hover { background-color: #3f3f46; }
         .btn-add { background-color: var(--accent); border: none; font-weight: 600; }
         
-        .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; height: 250px; }
+        .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; height: 280px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
-        .stat-label { font-size: 12px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-        .stat-value { font-size: 24px; font-weight: 800; color: white; margin-top: 5px; }
+        .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+        .stat-value { font-size: 22px; font-weight: 800; color: white; margin-top: 5px; }
 
         .scroll-container { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--card); }
         table { border-collapse: collapse; min-width: 3200px; table-layout: fixed; }
@@ -67,7 +67,7 @@
         <div class="stat-card"><div class="stat-label">Nordic prosjekter</div><div id="statNordicCount" class="stat-value">0</div></div>
         <div class="stat-card"><div class="stat-label">NC prosjekter</div><div id="statNC" class="stat-value">0</div></div>
         <div class="stat-card"><div class="stat-label">% NC prosjekter</div><div id="statPercNC" class="stat-value">0%</div></div>
-        <div class="stat-card"><div class="stat-label">Nordic timer (% av fakturerbart)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
+        <div class="stat-card"><div class="stat-label">Nordic timer (% av faktur.)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
     </div>
 
     <div class="scroll-container">
@@ -76,16 +76,12 @@
 
     <div id="projectModal" class="modal-overlay"><div class="modal-content">
         <h3 id="modalTitle">Prosjekt</h3>
-        <input type="hidden" id="editProjId">
-        <input type="text" id="projNo" placeholder="Prosjektnummer">
-        <input type="text" id="projName" placeholder="Navn...">
-        
+        <input type="hidden" id="editProjId"><input type="text" id="projNo" placeholder="Prosjektnummer"><input type="text" id="projName" placeholder="Navn...">
         <div class="radio-group">
             <label><input type="radio" name="projType" value="nordic" checked> Nordic</label>
             <label><input type="radio" name="projType" value="nc"> Norconsult (NC)</label>
             <label><input type="radio" name="projType" value="uf"> Ufakturerbart</label>
         </div>
-
         <button class="btn-add" style="width:100%" onclick="saveProject()">Lagre</button>
         <button id="deleteBtn" style="width:100%; margin-top:5px; background: var(--danger); display:none;" onclick="deleteProject()">Slett</button>
         <button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button>
@@ -119,10 +115,7 @@
         }
 
         function addNewEmployee() { document.getElementById('newEmpName').value = ''; document.getElementById('newEmployeeModal').style.display = 'flex'; }
-        async function saveNewEmployee() { 
-            const n = document.getElementById('newEmpName').value; const g = document.getElementById('newEmpGroup').value;
-            if (n) { await db.from('ansatte').insert([{ navn: n, gruppe: g }]); await fetchData(); renderUI(); closeModals(); }
-        }
+        async function saveNewEmployee() { const n = document.getElementById('newEmpName').value; const g = document.getElementById('newEmpGroup').value; if (n) { await db.from('ansatte').insert([{ navn: n, gruppe: g }]); await fetchData(); renderUI(); closeModals(); } }
 
         async function save(ansatt, prosjekt, uke, prosent) {
             const id = `${ansatt}_${prosjekt}_${uke}`;
@@ -154,31 +147,21 @@
         function updateStats() {
             const view = document.getElementById('viewFilter').value;
             if (view !== 'prosjekter') return;
-
-            const fakturerbare = data.projects.filter(p => !p.er_ufakturerbart);
-            const nordicProjs = fakturerbare.filter(p => !p.er_nc);
-            const ncProjs = fakturerbare.filter(p => p.er_nc);
-
-            const totalFakturerbart = fakturerbare.length;
-            const percNC = totalFakturerbart > 0 ? Math.round((ncProjs.length / totalFakturerbart) * 100) : 0;
-
-            let totalTimerFakt = 0;
-            let nordicTimer = 0;
-
+            const fakt = data.projects.filter(p => !p.er_ufakturerbart);
+            const nordic = fakt.filter(p => !p.er_nc);
+            const nc = fakt.filter(p => p.er_nc);
+            const totalFaktCount = fakt.length;
+            const percNC = totalFaktCount > 0 ? Math.round((nc.length / totalFaktCount) * 100) : 0;
+            let totalT = 0, nordicT = 0;
             data.assignments.forEach(a => {
                 const p = data.projects.find(proj => proj.navn === a.prosjekt);
-                if (p && !p.er_ufakturerbart) {
-                    totalTimerFakt += Number(a.prosent);
-                    if (!p.er_nc) nordicTimer += Number(a.prosent);
-                }
+                if (p && !p.er_ufakturerbart) { totalT += Number(a.prosent); if (!p.er_nc) nordicT += Number(a.prosent); }
             });
-
-            const percNordicTimer = totalTimerFakt > 0 ? Math.round((nordicTimer / totalTimerFakt) * 100) : 0;
-
-            document.getElementById('statNordicCount').innerText = nordicProjs.length;
-            document.getElementById('statNC').innerText = ncProjs.length;
+            const pNordicT = totalT > 0 ? Math.round((nordicT / totalT) * 100) : 0;
+            document.getElementById('statNordicCount').innerText = nordic.length;
+            document.getElementById('statNC').innerText = nc.length;
             document.getElementById('statPercNC').innerText = percNC + '%';
-            document.getElementById('statNordicTimer').innerText = percNordicTimer + '%';
+            document.getElementById('statNordicTimer').innerText = pNordicT + '%';
         }
 
         function renderTotaler() {
@@ -198,12 +181,10 @@
         }
 
         function renderUI() {
-            const head = document.getElementById('tableHead');
             const view = document.getElementById('viewFilter').value;
-            
             document.getElementById('chartSection').style.display = view === 'ansatte' ? 'block' : 'none';
             document.getElementById('statsSection').style.display = view === 'prosjekter' ? 'grid' : 'none';
-
+            const head = document.getElementById('tableHead');
             let yrs = '<th class="name-col header-year"></th>', mos = '<th class="name-col header-month">Navn / Nr</th>', wks = '<th class="name-col header-week"></th>';
             let curY = data.timeline[0].year, yC = 0, curM = data.timeline[0].month, mC = 0;
             data.timeline.forEach((t, i) => {
@@ -213,11 +194,9 @@
                 if (i === data.timeline.length - 1) { yrs += `<th colspan="${yC}" class="header-year">${curY}</th>`; mos += `<th colspan="${mC}" class="header-month">${curM}</th>`; }
             });
             head.innerHTML = `<tr>${yrs}</tr><tr>${mos}</tr><tr>${wks}</tr>`;
-            
             const gF = document.getElementById('groupFilter').value;
             const body = document.getElementById('tableBody');
             body.innerHTML = '';
-
             if (view === 'ansatte') {
                 data.employees.filter(e => gF === 'Alle' || e.gruppe === gF).forEach(emp => {
                     const tr = document.createElement('tr'); tr.className='row-summary';
@@ -247,10 +226,7 @@
                     const tr = document.createElement('tr'); tr.className='row-summary';
                     tr.onclick = (e) => { if(!e.target.closest('button')) { expanded.has(p.navn) ? expanded.delete(p.navn) : expanded.add(p.navn); renderUI(); } };
                     let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(p.navn)?'▼':'▶'}</span> <span class="${p.er_nc?'nc-tag':(p.er_ufakturerbart?'uf-tag':'')}">${p.prosjektnummer ? p.prosjektnummer + ' ' : ''}${p.navn}</span><button class="edit-btn" onclick="openEditProjectModal('${p.id}', '${p.prosjektnummer || ''}', '${p.navn}', ${p.er_nc}, ${p.er_ufakturerbart})">✎</button></div></td>`;
-                    data.timeline.forEach(t => {
-                        const sum = data.assignments.filter(a => a.prosjekt === p.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
-                        h += `<td>${sum > 0 ? sum + '%' : '-'}</td>`;
-                    });
+                    data.timeline.forEach(t => { const sum = data.assignments.filter(a => a.prosjekt === p.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0); h += `<td>${sum > 0 ? sum + '%' : '-'}</td>`; });
                     tr.innerHTML = h; body.appendChild(tr);
                     if (expanded.has(p.navn)) {
                         [...new Set(data.assignments.filter(a => a.prosjekt === p.navn).map(a => a.ansatt))].forEach(an => {
@@ -269,47 +245,16 @@
             renderTotaler(); updateChart();
         }
 
-        function openNewProjectModal() { 
-            document.getElementById('modalTitle').innerText = "Nytt Prosjekt"; 
-            document.getElementById('editProjId').value = ""; 
-            document.getElementById('projNo').value = ""; 
-            document.getElementById('projName').value = ""; 
-            document.querySelector('input[name="projType"][value="nordic"]').checked = true;
-            document.getElementById('deleteBtn').style.display = "none"; 
-            document.getElementById('projectModal').style.display = "flex"; 
-        }
-
-        function openEditProjectModal(id, nr, navn, isNC, isUF) { 
-            document.getElementById('modalTitle').innerText = "Rediger Prosjekt"; 
-            document.getElementById('editProjId').value = id; 
-            document.getElementById('projNo').value = nr; 
-            document.getElementById('projName').value = navn; 
-            
-            if (isNC) document.querySelector('input[name="projType"][value="nc"]').checked = true;
-            else if (isUF) document.querySelector('input[name="projType"][value="uf"]').checked = true;
-            else document.querySelector('input[name="projType"][value="nordic"]').checked = true;
-            
-            document.getElementById('deleteBtn').style.display = "block"; 
-            document.getElementById('projectModal').style.display = "flex"; 
-        }
-
+        function openNewProjectModal() { document.getElementById('modalTitle').innerText = "Nytt Prosjekt"; document.getElementById('editProjId').value = ""; document.getElementById('projNo').value = ""; document.getElementById('projName').value = ""; document.querySelector('input[name="projType"][value="nordic"]').checked = true; document.getElementById('deleteBtn').style.display = "none"; document.getElementById('projectModal').style.display = "flex"; }
+        function openEditProjectModal(id, nr, navn, isNC, isUF) { document.getElementById('modalTitle').innerText = "Rediger Prosjekt"; document.getElementById('editProjId').value = id; document.getElementById('projNo').value = nr; document.getElementById('projName').value = navn; if (isNC) document.querySelector('input[name="projType"][value="nc"]').checked = true; else if (isUF) document.querySelector('input[name="projType"][value="uf"]').checked = true; else document.querySelector('input[name="projType"][value="nordic"]').checked = true; document.getElementById('deleteBtn').style.display = "block"; document.getElementById('projectModal').style.display = "flex"; }
         async function saveProject() { 
-            const id = document.getElementById('editProjId').value; 
-            const nr = document.getElementById('projNo').value; 
-            const navn = document.getElementById('projName').value; 
-            const type = document.querySelector('input[name="projType"]:checked').value;
-            
-            const isNC = type === 'nc';
-            const isUF = type === 'uf';
-
+            const id = document.getElementById('editProjId').value; const nr = document.getElementById('projNo').value; const navn = document.getElementById('projName').value; const type = document.querySelector('input[name="projType"]:checked').value;
+            const isNC = type === 'nc', isUF = type === 'uf';
             if(!navn) return;
-            
             if(id) await db.from('prosjekter').update({ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }).eq('id', id);
             else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }]);
-            
             await fetchData(); renderUI(); closeModals(); 
         }
-
         async function deleteProject() { const id = document.getElementById('editProjId').value; const navn = document.getElementById('projName').value; if(confirm(`Slette ${navn}?`)) { await db.from('bemanning').delete().eq('prosjekt', navn); await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
         function openAssignModal(ansatt) { activeAssignee = ansatt; document.getElementById('assignModal').style.display = 'flex'; filterProjects(); }
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
@@ -317,10 +262,35 @@
         
         function updateChart() {
             const filter = document.getElementById('groupFilter').value; const fEmps = data.employees.filter(e => filter === 'Alle' || e.gruppe === filter); const nEmps = fEmps.length || 1;
-            const snittData = data.timeline.map(t => { let sum = 0; fEmps.forEach(e => { sum += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0); }); return Math.round(sum / nEmps); });
-            document.getElementById('samletProsent').innerText = `Snitt: ${Math.round(snittData.reduce((a,b)=>a+b,0)/snittData.length)}%`;
+            
+            // Total utnyttelse (Alt inkludert)
+            const totalData = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s / nEmps); });
+            
+            // Fakturerbar utnyttelse (Kun Nordic + NC)
+            const faktData = data.timeline.map(t => { 
+                let s = 0; 
+                fEmps.forEach(e => { 
+                    s += data.assignments.filter(a => {
+                        const p = data.projects.find(proj => proj.navn === a.prosjekt);
+                        return a.ansatt === e.navn && a.uke === t.id && p && !p.er_ufakturerbart;
+                    }).reduce((sum, a) => sum + Number(a.prosent), 0); 
+                }); 
+                return Math.round(s / nEmps); 
+            });
+
+            document.getElementById('samletProsent').innerText = `Snitt Total: ${Math.round(totalData.reduce((a,b)=>a+b,0)/totalData.length)}%`;
             const ctx = document.getElementById('utilizationChart').getContext('2d'); if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.timeline.map(t => 'U'+t.week), datasets: [{ data: snittData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 120 }, x: { grid: { display: false } } }, plugins: { legend: { display: false } } } });
+            chartInstance = new Chart(ctx, { 
+                type: 'line', 
+                data: { 
+                    labels: data.timeline.map(t => 'U'+t.week), 
+                    datasets: [
+                        { label: 'Total utnyttelse', data: totalData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'Fakturerbar grad', data: faktData, borderColor: '#ffffff', borderDash: [5, 5], fill: false, tension: 0.4 }
+                    ] 
+                }, 
+                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 120, grid: { color: '#27272a' } }, x: { grid: { display: false } } }, plugins: { legend: { display: true, labels: { color: '#f4f4f5', font: { size: 10 } } } } } 
+            });
         }
         init();
     </script>
