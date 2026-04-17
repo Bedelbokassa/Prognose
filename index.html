@@ -40,10 +40,13 @@
         .val-ok { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80; }
         .val-over { background: rgba(239, 68, 68, 0.15) !important; color: #f87171; }
         .nc-tag { color: #3b82f6; font-weight: bold; }
+        .uf-tag { color: #a1a1aa; font-style: italic; opacity: 0.7; }
         .edit-btn { background: transparent; border: none; color: var(--text-dim); padding: 4px; font-size: 14px; cursor: pointer; }
         .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
         .modal-content { background: var(--card); padding: 25px; border-radius: 12px; width: 400px; border: 1px solid var(--border); }
         .modal-content input[type=text], .modal-content select { width: 100%; padding: 12px; background: #27272a; border: 1px solid var(--border); color: white; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
+        .radio-group { display: flex; gap: 15px; margin-bottom: 15px; color: var(--text-dim); font-size: 13px; }
+        .radio-group label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -61,17 +64,33 @@
     <div id="chartSection" class="chart-container"><canvas id="utilizationChart"></canvas></div>
 
     <div id="statsSection" class="stats-grid" style="display:none;">
-        <div class="stat-card"><div class="stat-label">Ekte prosjekter</div><div id="statTotal" class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">Antall NC prosjekter</div><div id="statNC" class="stat-value">0</div></div>
+        <div class="stat-card"><div class="stat-label">Nordic prosjekter</div><div id="statNordicCount" class="stat-value">0</div></div>
+        <div class="stat-card"><div class="stat-label">NC prosjekter</div><div id="statNC" class="stat-value">0</div></div>
         <div class="stat-card"><div class="stat-label">% NC prosjekter</div><div id="statPercNC" class="stat-value">0%</div></div>
-        <div class="stat-card"><div class="stat-label">Nordic timer (% av total)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
+        <div class="stat-card"><div class="stat-label">Nordic timer (% av fakturerbart)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
     </div>
 
     <div class="scroll-container">
         <table><thead id="tableHead"></thead><tbody id="tableBody"></tbody><tfoot id="tableFoot"></tfoot></table>
     </div>
 
-    <div id="projectModal" class="modal-overlay"><div class="modal-content"><h3 id="modalTitle">Prosjekt</h3><input type="hidden" id="editProjId"><input type="text" id="projNo" placeholder="Prosjektnummer"><input type="text" id="projName" placeholder="Navn..."><label style="display:flex; gap:10px; margin-bottom:15px; color:#a1a1aa;"><input type="checkbox" id="projNC"> NC prosjekt?</label><button class="btn-add" style="width:100%" onclick="saveProject()">Lagre</button><button id="deleteBtn" style="width:100%; margin-top:5px; background: var(--danger); display:none;" onclick="deleteProject()">Slett</button><button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button></div></div>
+    <div id="projectModal" class="modal-overlay"><div class="modal-content">
+        <h3 id="modalTitle">Prosjekt</h3>
+        <input type="hidden" id="editProjId">
+        <input type="text" id="projNo" placeholder="Prosjektnummer">
+        <input type="text" id="projName" placeholder="Navn...">
+        
+        <div class="radio-group">
+            <label><input type="radio" name="projType" value="nordic" checked> Nordic</label>
+            <label><input type="radio" name="projType" value="nc"> Norconsult (NC)</label>
+            <label><input type="radio" name="projType" value="uf"> Ufakturerbart</label>
+        </div>
+
+        <button class="btn-add" style="width:100%" onclick="saveProject()">Lagre</button>
+        <button id="deleteBtn" style="width:100%; margin-top:5px; background: var(--danger); display:none;" onclick="deleteProject()">Slett</button>
+        <button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button>
+    </div></div>
+
     <div id="assignModal" class="modal-overlay"><div class="modal-content"><h3>Velg prosjekt</h3><input type="text" id="projectSearch" placeholder="Søk..." oninput="filterProjects()"><div id="projectList" style="max-height:300px; overflow-y:auto;"></div><button onclick="closeModals()" style="width:100%; margin-top:10px;">Avbryt</button></div></div>
     <div id="newEmployeeModal" class="modal-overlay"><div class="modal-content"><h3>Ny Ansatt</h3><input type="text" id="newEmpName" placeholder="Navn..."><select id="newEmpGroup"><option value="Sigurd">Sigurd</option><option value="Carl">Carl</option></select><button class="btn-add" style="width:100%" onclick="saveNewEmployee()">Lagre</button><button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button></div></div>
 
@@ -136,30 +155,28 @@
             const view = document.getElementById('viewFilter').value;
             if (view !== 'prosjekter') return;
 
-            // Definer uakturerbare nøkkelord
-            const excludeWords = ["Ferie", "Fravær", "Administrasjon", "Akkvisisjon"];
-            const isExcluded = (name) => excludeWords.some(word => name.includes(word));
+            const fakturerbare = data.projects.filter(p => !p.er_ufakturerbart);
+            const nordicProjs = fakturerbare.filter(p => !p.er_nc);
+            const ncProjs = fakturerbare.filter(p => p.er_nc);
 
-            const realProjects = data.projects.filter(p => !isExcluded(p.navn));
-            const totalReal = realProjects.length;
-            const ncProjs = realProjects.filter(p => p.er_nc).length;
-            const percNC = totalReal > 0 ? Math.round((ncProjs / totalReal) * 100) : 0;
+            const totalFakturerbart = fakturerbare.length;
+            const percNC = totalFakturerbart > 0 ? Math.round((ncProjs.length / totalFakturerbart) * 100) : 0;
 
-            let totalTimerReal = 0;
+            let totalTimerFakt = 0;
             let nordicTimer = 0;
 
             data.assignments.forEach(a => {
-                if (!isExcluded(a.prosjekt)) {
-                    const p = data.projects.find(proj => proj.navn === a.prosjekt);
-                    totalTimerReal += Number(a.prosent);
-                    if (p && !p.er_nc) nordicTimer += Number(a.prosent);
+                const p = data.projects.find(proj => proj.navn === a.prosjekt);
+                if (p && !p.er_ufakturerbart) {
+                    totalTimerFakt += Number(a.prosent);
+                    if (!p.er_nc) nordicTimer += Number(a.prosent);
                 }
             });
 
-            const percNordicTimer = totalTimerReal > 0 ? Math.round((nordicTimer / totalTimerReal) * 100) : 0;
+            const percNordicTimer = totalTimerFakt > 0 ? Math.round((nordicTimer / totalTimerFakt) * 100) : 0;
 
-            document.getElementById('statTotal').innerText = totalReal;
-            document.getElementById('statNC').innerText = ncProjs;
+            document.getElementById('statNordicCount').innerText = nordicProjs.length;
+            document.getElementById('statNC').innerText = ncProjs.length;
             document.getElementById('statPercNC').innerText = percNC + '%';
             document.getElementById('statNordicTimer').innerText = percNordicTimer + '%';
         }
@@ -215,7 +232,7 @@
                         [...new Set(data.assignments.filter(a => a.ansatt === emp.navn).map(a => a.prosjekt))].forEach(pn => {
                             const pDb = data.projects.find(p => p.navn === pn);
                             const ptr = document.createElement('tr'); ptr.className='row-project';
-                            let ph = `<td class="name-col" style="padding-left:30px;"><div class="${pDb?.er_nc?'nc-tag':''}">${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}</div></td>`;
+                            let ph = `<td class="name-col" style="padding-left:30px;"><div class="${pDb?.er_nc?'nc-tag':(pDb?.er_ufakturerbart?'uf-tag':'')}">${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}</div></td>`;
                             data.timeline.forEach(t => {
                                 const v = data.assignments.find(a => a.ansatt === emp.navn && a.prosjekt === pn && a.uke === t.id)?.prosent || '';
                                 ph += `<td><input type="number" value="${v}" onchange="save('${emp.navn}', '${pn}', '${t.id}', this.value)"></td>`;
@@ -229,7 +246,7 @@
                 data.projects.forEach(p => {
                     const tr = document.createElement('tr'); tr.className='row-summary';
                     tr.onclick = (e) => { if(!e.target.closest('button')) { expanded.has(p.navn) ? expanded.delete(p.navn) : expanded.add(p.navn); renderUI(); } };
-                    let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(p.navn)?'▼':'▶'}</span> <span class="${p.er_nc?'nc-tag':''}">${p.prosjektnummer ? p.prosjektnummer + ' ' : ''}${p.navn}</span><button class="edit-btn" onclick="openEditProjectModal('${p.id}', '${p.prosjektnummer || ''}', '${p.navn}', ${p.er_nc})">✎</button></div></td>`;
+                    let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(p.navn)?'▼':'▶'}</span> <span class="${p.er_nc?'nc-tag':(p.er_ufakturerbart?'uf-tag':'')}">${p.prosjektnummer ? p.prosjektnummer + ' ' : ''}${p.navn}</span><button class="edit-btn" onclick="openEditProjectModal('${p.id}', '${p.prosjektnummer || ''}', '${p.navn}', ${p.er_nc}, ${p.er_ufakturerbart})">✎</button></div></td>`;
                     data.timeline.forEach(t => {
                         const sum = data.assignments.filter(a => a.prosjekt === p.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
                         h += `<td>${sum > 0 ? sum + '%' : '-'}</td>`;
@@ -252,9 +269,47 @@
             renderTotaler(); updateChart();
         }
 
-        function openNewProjectModal() { document.getElementById('modalTitle').innerText = "Nytt Prosjekt"; document.getElementById('editProjId').value = ""; document.getElementById('projNo').value = ""; document.getElementById('projName').value = ""; document.getElementById('projNC').checked = false; document.getElementById('deleteBtn').style.display = "none"; document.getElementById('projectModal').style.display = "flex"; }
-        function openEditProjectModal(id, nr, navn, nc) { document.getElementById('modalTitle').innerText = "Rediger Prosjekt"; document.getElementById('editProjId').value = id; document.getElementById('projNo').value = nr; document.getElementById('projName').value = navn; document.getElementById('projNC').checked = nc; document.getElementById('deleteBtn').style.display = "block"; document.getElementById('projectModal').style.display = "flex"; }
-        async function saveProject() { const id = document.getElementById('editProjId').value; const nr = document.getElementById('projNo').value; const navn = document.getElementById('projName').value; const nc = document.getElementById('projNC').checked; if(!navn) return; if(id) await db.from('prosjekter').update({ prosjektnummer: nr, navn: navn, er_nc: nc }).eq('id', id); else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: nc }]); await fetchData(); renderUI(); closeModals(); }
+        function openNewProjectModal() { 
+            document.getElementById('modalTitle').innerText = "Nytt Prosjekt"; 
+            document.getElementById('editProjId').value = ""; 
+            document.getElementById('projNo').value = ""; 
+            document.getElementById('projName').value = ""; 
+            document.querySelector('input[name="projType"][value="nordic"]').checked = true;
+            document.getElementById('deleteBtn').style.display = "none"; 
+            document.getElementById('projectModal').style.display = "flex"; 
+        }
+
+        function openEditProjectModal(id, nr, navn, isNC, isUF) { 
+            document.getElementById('modalTitle').innerText = "Rediger Prosjekt"; 
+            document.getElementById('editProjId').value = id; 
+            document.getElementById('projNo').value = nr; 
+            document.getElementById('projName').value = navn; 
+            
+            if (isNC) document.querySelector('input[name="projType"][value="nc"]').checked = true;
+            else if (isUF) document.querySelector('input[name="projType"][value="uf"]').checked = true;
+            else document.querySelector('input[name="projType"][value="nordic"]').checked = true;
+            
+            document.getElementById('deleteBtn').style.display = "block"; 
+            document.getElementById('projectModal').style.display = "flex"; 
+        }
+
+        async function saveProject() { 
+            const id = document.getElementById('editProjId').value; 
+            const nr = document.getElementById('projNo').value; 
+            const navn = document.getElementById('projName').value; 
+            const type = document.querySelector('input[name="projType"]:checked').value;
+            
+            const isNC = type === 'nc';
+            const isUF = type === 'uf';
+
+            if(!navn) return;
+            
+            if(id) await db.from('prosjekter').update({ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }).eq('id', id);
+            else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }]);
+            
+            await fetchData(); renderUI(); closeModals(); 
+        }
+
         async function deleteProject() { const id = document.getElementById('editProjId').value; const navn = document.getElementById('projName').value; if(confirm(`Slette ${navn}?`)) { await db.from('bemanning').delete().eq('prosjekt', navn); await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
         function openAssignModal(ansatt) { activeAssignee = ansatt; document.getElementById('assignModal').style.display = 'flex'; filterProjects(); }
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
