@@ -13,20 +13,17 @@
         }
         body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
         
-        /* Layout & Verktøylinje */
         .header-title { font-size: 28px; font-weight: 800; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .toolbar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
         button, select { background-color: #27272a; color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: 0.2s; }
         button:hover { background-color: #3f3f46; }
 
-        /* Dashboard & Graf */
         .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; height: 280px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .stat-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
         .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
         .stat-value { font-size: 22px; font-weight: 800; color: white; margin-top: 5px; }
 
-        /* Tabell */
         .scroll-container { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--card); }
         table { border-collapse: collapse; min-width: 3200px; table-layout: fixed; }
         th, td { border: 1px solid var(--border); text-align: center; width: 65px; height: 45px; }
@@ -45,20 +42,17 @@
         .row-project { background: #121215; font-size: 12px; color: var(--text-dim); }
         .row-total { background: #09090b; font-weight: 800; border-top: 2px solid var(--accent); color: white; }
 
-        /* Input uten piler */
         input[type=number] { 
-            width: 100%; height: 100%; background: transparent; border: none; color: white; 
+            width: 100%; height: 100%; background: transparent; border: none; color: inherit; 
             text-align: center; font-weight: bold; outline: none; -moz-appearance: textfield; 
         }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-        /* Diverse */
         .remove-proj-btn { opacity: 0; color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 18px; }
         .row-project:hover .remove-proj-btn { opacity: 1; }
         .nc-tag { color: #3b82f6; font-weight: bold; }
         .uf-tag { color: var(--text-dim); font-style: italic; opacity: 0.6; }
 
-        /* Modaler */
         .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
         .modal-content { background: var(--card); padding: 25px; border-radius: 12px; width: 400px; border: 1px solid var(--border); }
         .modal-content input, .modal-content select { width: 100%; padding: 12px; margin-bottom: 10px; background: #27272a; border: 1px solid var(--border); color: white; border-radius: 6px; box-sizing: border-box; }
@@ -115,6 +109,19 @@
         let chartInstance = null;
         let activeAssignee = null;
 
+        // HJELPEFUNKSJON FOR FARGEKODING (Gradient gul-grønn, rød over 100)
+        function getCellColor(value) {
+            if (value === 0 || value === "" || value === null) return "transparent";
+            if (value > 100) return "rgba(239, 68, 68, 0.4)"; // Rød
+            
+            // Regner ut farge mellom gul (rgb 234, 179, 8) og grønn (rgb 34, 197, 94)
+            const ratio = value / 100;
+            const r = Math.round(234 - (234 - 34) * ratio);
+            const g = Math.round(179 + (197 - 179) * ratio);
+            const b = Math.round(8 + (94 - 8) * ratio);
+            return `rgba(${r}, ${g}, ${b}, 0.25)`;
+        }
+
         async function init() { buildTimeline(52); await fetchData(); renderUI(); }
         async function fetchData() { 
             const [emp, proj, ass] = await Promise.all([db.from('ansatte').select('*'), db.from('prosjekter').select('*').order('navn'), db.from('bemanning').select('*')]);
@@ -154,23 +161,21 @@
                 const cell = cells[i + 1];
                 if (cell) {
                     cell.textContent = sum > 0 ? sum + '%' : '-';
-                    cell.className = sum > 100 ? 'val-over' : (sum === 100 ? 'val-ok' : (sum > 0 ? 'val-low' : ''));
+                    cell.style.backgroundColor = getCellColor(sum);
+                    cell.style.color = sum > 100 ? "#f87171" : (sum > 0 ? "#fff" : "var(--text-dim)");
                 }
             });
         }
 
         function updateStats() {
-            const view = document.getElementById('viewFilter').value;
-            if (view !== 'prosjekter') return;
             const fakt = data.projects.filter(p => !p.er_ufakturerbart);
-            const nordic = fakt.filter(p => !p.er_nc);
             const nc = fakt.filter(p => p.er_nc);
             let totalT = 0, nordicT = 0;
             data.assignments.forEach(a => {
                 const p = data.projects.find(proj => proj.navn === a.prosjekt);
                 if (p && !p.er_ufakturerbart) { totalT += Number(a.prosent); if (!p.er_nc) nordicT += Number(a.prosent); }
             });
-            document.getElementById('statNordicCount').innerText = nordic.length;
+            document.getElementById('statNordicCount').innerText = fakt.length - nc.length;
             document.getElementById('statNC').innerText = nc.length;
             document.getElementById('statPercNC').innerText = fakt.length > 0 ? Math.round((nc.length / fakt.length) * 100) + '%' : '0%';
             document.getElementById('statNordicTimer').innerText = totalT > 0 ? Math.round((nordicT / totalT) * 100) + '%' : '0%';
@@ -187,7 +192,7 @@
                 let total = 0;
                 fEmps.forEach(e => { total += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0); });
                 const avg = Math.round(total / (fEmps.length || 1));
-                h += `<td class="${avg > 100 ? 'val-over' : (avg >= 90 ? 'val-ok' : 'val-low')}">${avg}%</td>`;
+                h += `<td style="background-color: ${getCellColor(avg)}">${avg}%</td>`;
             });
             foot.innerHTML = h + '</tr>';
         }
@@ -215,7 +220,7 @@
                     let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(emp.navn)?'▼':'▶'}</span> ${emp.navn}</div></td>`;
                     data.timeline.forEach(t => {
                         const sum = data.assignments.filter(a => a.ansatt === emp.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
-                        h += `<td class="${sum > 100 ? 'val-over' : (sum === 100 ? 'val-ok' : (sum > 0 ? 'val-low' : ''))}">${sum > 0 ? sum + '%' : '-'}</td>`;
+                        h += `<td style="background-color: ${getCellColor(sum)}; color: ${sum > 100 ? '#f87171' : '#fff'}">${sum > 0 ? sum + '%' : '-'}</td>`;
                     });
                     tr.innerHTML = h; body.appendChild(tr);
                     if (expanded.has(emp.navn)) {
@@ -225,7 +230,7 @@
                             let ph = `<td class="name-col" style="padding-left:30px;"><div style="display:flex; justify-content:space-between; align-items:center;"><div class="${pDb?.er_nc?'nc-tag':(pDb?.er_ufakturerbart?'uf-tag':'')}">${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}</div><button class="remove-proj-btn" onclick="removeProjectFromEmployee('${emp.navn}', '${pn}')">×</button></div></td>`;
                             data.timeline.forEach(t => {
                                 const v = data.assignments.find(a => a.ansatt === emp.navn && a.prosjekt === pn && a.uke === t.id)?.prosent || '';
-                                ph += `<td><input type="number" value="${v}" onchange="save('${emp.navn}', '${pn}', '${t.id}', this.value)"></td>`;
+                                ph += `<td style="background-color: ${getCellColor(v)}"><input type="number" value="${v}" onchange="save('${emp.navn}', '${pn}', '${t.id}', this.value)"></td>`;
                             });
                             ptr.innerHTML = ph; body.appendChild(ptr);
                         });
@@ -237,7 +242,7 @@
                     const tr = document.createElement('tr'); tr.className='row-summary';
                     tr.onclick = (e) => { if(!e.target.closest('button')) { expanded.has(p.navn) ? expanded.delete(p.navn) : expanded.add(p.navn); renderUI(); } };
                     let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(p.navn)?'▼':'▶'}</span> <span class="${p.er_nc?'nc-tag':(p.er_ufakturerbart?'uf-tag':'')}">${p.prosjektnummer ? p.prosjektnummer + ' ' : ''}${p.navn}</span><button class="edit-btn" onclick="openEditProjectModal('${p.id}', '${p.prosjektnummer || ''}', '${p.navn}', ${p.er_nc}, ${p.er_ufakturerbart})">✎</button></div></td>`;
-                    data.timeline.forEach(t => { const s = data.assignments.filter(a => a.prosjekt === p.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); h += `<td>${s > 0 ? s + '%' : '-'}</td>`; });
+                    data.timeline.forEach(t => { const s = data.assignments.filter(a => a.prosjekt === p.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); h += `<td style="background-color: ${getCellColor(s)}">${s > 0 ? s + '%' : '-'}</td>`; });
                     tr.innerHTML = h; body.appendChild(tr);
                     if (expanded.has(p.navn)) {
                         [...new Set(data.assignments.filter(a => a.prosjekt === p.navn).map(a => a.ansatt))].forEach(an => {
@@ -245,7 +250,7 @@
                             let ph = `<td class="name-col" style="padding-left:30px;">${an}</td>`;
                             data.timeline.forEach(t => {
                                 const v = data.assignments.find(a => a.ansatt === an && a.prosjekt === p.navn && a.uke === t.id)?.prosent || '';
-                                ph += `<td><input type="number" value="${v}" onchange="save('${an}', '${p.navn}', '${t.id}', this.value)"></td>`;
+                                ph += `<td style="background-color: ${getCellColor(v)}"><input type="number" value="${v}" onchange="save('${an}', '${p.navn}', '${t.id}', this.value)"></td>`;
                             });
                             ptr.innerHTML = ph; body.appendChild(ptr);
                         });
