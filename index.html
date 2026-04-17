@@ -34,19 +34,23 @@
         .row-summary { cursor: pointer; background: #1c1c21; font-weight: 600; }
         .row-total { background: #09090b; font-weight: 800; border-top: 2px solid var(--accent); color: white; }
         .row-project { background: #121215; font-size: 12px; color: var(--text-dim); }
-        input[type=number] { width: 100%; height: 100%; background: transparent; border: none; color: white; text-align: center; font-size: 13px; font-weight: bold; outline: none; -moz-appearance: textfield; }
+        
+        .remove-proj-btn { opacity: 0; color: var(--danger); background: transparent; border: none; padding: 0 5px; cursor: pointer; font-size: 16px; transition: 0.2s; }
+        .row-project:hover .remove-proj-btn { opacity: 1; }
+
+        input[type=number] { width: 100%; height: 100%; background: transparent; border: none; color: white; text-align: center; font-size: 13px; font-weight: bold; outline: none; }
         input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
         .val-low { color: #60a5fa; }
         .val-ok { background: rgba(34, 197, 94, 0.15) !important; color: #4ade80; }
         .val-over { background: rgba(239, 68, 68, 0.15) !important; color: #f87171; }
         .nc-tag { color: #3b82f6; font-weight: bold; }
         .uf-tag { color: #a1a1aa; font-style: italic; opacity: 0.7; }
-        .edit-btn { background: transparent; border: none; color: var(--text-dim); padding: 4px; font-size: 14px; cursor: pointer; }
+        
         .modal-overlay { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; }
         .modal-content { background: var(--card); padding: 25px; border-radius: 12px; width: 400px; border: 1px solid var(--border); }
         .modal-content input[type=text], .modal-content select { width: 100%; padding: 12px; background: #27272a; border: 1px solid var(--border); color: white; border-radius: 6px; margin-bottom: 10px; box-sizing: border-box; }
         .radio-group { display: flex; gap: 15px; margin-bottom: 15px; color: var(--text-dim); font-size: 13px; }
-        .radio-group label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -83,7 +87,7 @@
             <label><input type="radio" name="projType" value="uf"> Ufakturerbart</label>
         </div>
         <button class="btn-add" style="width:100%" onclick="saveProject()">Lagre</button>
-        <button id="deleteBtn" style="width:100%; margin-top:5px; background: var(--danger); display:none;" onclick="deleteProject()">Slett</button>
+        <button id="deleteBtn" style="width:100%; margin-top:5px; background: var(--danger); display:none;" onclick="deleteProject()">Slett fra systemet</button>
         <button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button>
     </div></div>
 
@@ -111,6 +115,16 @@
                 const dayNr = (d.getDay() + 6) % 7; target.setDate(target.getDate() - dayNr + 3);
                 const week = 1 + Math.round(((target.getTime() - new Date(target.getFullYear(), 0, 4).getTime()) / 86400000 - 3 + (new Date(target.getFullYear(), 0, 4).getDay() + 6) % 7) / 7);
                 data.timeline.push({ id: `u${week}/${d.getFullYear().toString().slice(-2)}`, week: week, month: d.toLocaleString('no-NO', { month: 'short' }), year: d.getFullYear() });
+            }
+        }
+
+        async function removeProjectFromEmployee(ansatt, prosjekt) {
+            if (confirm(`Vil du fjerne prosjektet "${prosjekt}" fra ${ansatt}? Alle timer for dette prosjektet på denne personen vil bli slettet.`)) {
+                const { error } = await db.from('bemanning').delete().eq('ansatt', ansatt).eq('prosjekt', prosjekt);
+                if (!error) {
+                    data.assignments = data.assignments.filter(a => !(a.ansatt === ansatt && a.prosjekt === prosjekt));
+                    renderUI();
+                }
             }
         }
 
@@ -208,17 +222,25 @@
                     });
                     tr.innerHTML = h; body.appendChild(tr);
                     if (expanded.has(emp.navn)) {
-                        [...new Set(data.assignments.filter(a => a.ansatt === emp.navn).map(a => a.prosjekt))].forEach(pn => {
+                        const empProjs = [...new Set(data.assignments.filter(a => a.ansatt === emp.navn).map(a => a.prosjekt))];
+                        empProjs.forEach(pn => {
                             const pDb = data.projects.find(p => p.navn === pn);
                             const ptr = document.createElement('tr'); ptr.className='row-project';
-                            let ph = `<td class="name-col" style="padding-left:30px;"><div class="${pDb?.er_nc?'nc-tag':(pDb?.er_ufakturerbart?'uf-tag':'')}">${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}</div></td>`;
+                            let ph = `<td class="name-col" style="padding-left:30px;">
+                                <div style="display:flex; justify-content:space-between; align-items:center;">
+                                    <div class="${pDb?.er_nc?'nc-tag':(pDb?.er_ufakturerbart?'uf-tag':'')}">
+                                        ${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}
+                                    </div>
+                                    <button class="remove-proj-btn" onclick="removeProjectFromEmployee('${emp.navn}', '${pn}')" title="Fjern fra person">×</button>
+                                </div>
+                            </td>`;
                             data.timeline.forEach(t => {
                                 const v = data.assignments.find(a => a.ansatt === emp.navn && a.prosjekt === pn && a.uke === t.id)?.prosent || '';
                                 ph += `<td><input type="number" value="${v}" onchange="save('${emp.navn}', '${pn}', '${t.id}', this.value)"></td>`;
                             });
                             ptr.innerHTML = ph; body.appendChild(ptr);
                         });
-                        body.insertAdjacentHTML('beforeend', `<tr><td class="name-col" style="background:#111;"><button onclick="openAssignModal('${emp.navn}')" style="font-size:10px; margin-left:20px">+ Tildel</button></td><td colspan="${data.timeline.length}"></td></tr>`);
+                        body.insertAdjacentHTML('beforeend', `<tr><td class="name-col" style="background:#111;"><button onclick="openAssignModal('${emp.navn}')" style="font-size:10px; margin-left:20px">+ Tildel prosjekt</button></td><td colspan="${data.timeline.length}"></td></tr>`);
                     }
                 });
             } else {
@@ -255,18 +277,14 @@
             else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }]);
             await fetchData(); renderUI(); closeModals(); 
         }
-        async function deleteProject() { const id = document.getElementById('editProjId').value; const navn = document.getElementById('projName').value; if(confirm(`Slette ${navn}?`)) { await db.from('bemanning').delete().eq('prosjekt', navn); await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
+        async function deleteProject() { const id = document.getElementById('editProjId').value; const navn = document.getElementById('projName').value; if(confirm(`ADVARSEL: Slette hele prosjektet "${navn}" fra systemet? Dette vil fjerne alle timer for alle ansatte.`)) { await db.from('bemanning').delete().eq('prosjekt', navn); await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
         function openAssignModal(ansatt) { activeAssignee = ansatt; document.getElementById('assignModal').style.display = 'flex'; filterProjects(); }
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
         function filterProjects() { const s = document.getElementById('projectSearch').value.toLowerCase(); const l = document.getElementById('projectList'); l.innerHTML = ''; data.projects.filter(p => p.navn.toLowerCase().includes(s) || (p.prosjektnummer && p.prosjektnummer.includes(s))).forEach(p => { const d = document.createElement('div'); d.style.padding="10px"; d.style.cursor="pointer"; d.innerText = (p.prosjektnummer ? p.prosjektnummer + ' - ' : '') + p.navn; d.onclick = async () => { await save(activeAssignee, p.navn, data.timeline[0].id, 0); closeModals(); await fetchData(); renderUI(); }; l.appendChild(d); }); }
         
         function updateChart() {
             const filter = document.getElementById('groupFilter').value; const fEmps = data.employees.filter(e => filter === 'Alle' || e.gruppe === filter); const nEmps = fEmps.length || 1;
-            
-            // Total utnyttelse (Alt inkludert)
             const totalData = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s / nEmps); });
-            
-            // Fakturerbar utnyttelse (Kun Nordic + NC)
             const faktData = data.timeline.map(t => { 
                 let s = 0; 
                 fEmps.forEach(e => { 
@@ -277,7 +295,6 @@
                 }); 
                 return Math.round(s / nEmps); 
             });
-
             document.getElementById('samletProsent').innerText = `Snitt Total: ${Math.round(totalData.reduce((a,b)=>a+b,0)/totalData.length)}%`;
             const ctx = document.getElementById('utilizationChart').getContext('2d'); if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, { 
@@ -285,7 +302,7 @@
                 data: { 
                     labels: data.timeline.map(t => 'U'+t.week), 
                     datasets: [
-                        { label: 'Total utnyttelse', data: totalData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
+                        { label: 'Total belastning', data: totalData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', fill: true, tension: 0.4 },
                         { label: 'Fakturerbar grad', data: faktData, borderColor: '#ffffff', borderDash: [5, 5], fill: false, tension: 0.4 }
                     ] 
                 }, 
