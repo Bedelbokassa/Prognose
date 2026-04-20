@@ -11,55 +11,57 @@
             --bg: #0f0f12; --card: #18181b; --border: #27272a; 
             --accent: #3b82f6; --text: #f4f4f5; --text-dim: #a1a1aa; --danger: #ef4444; 
         }
-        body { 
-    background-color: var(--bg); 
-    color: var(--text); 
-    font-family: 'Inter', sans-serif; 
-    margin: 0; 
-    padding: 0; /* Fjernet padding herfra */
-    min-height: 100vh; 
-    display: flex; 
-    flex-direction: column; /* Viktig for at innholdet skal flyte nedover */
-}
-
-#login-screen { 
-    flex: 1; /* Tar opp hele skjermen når den vises */
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-}
-
-#main-content { 
-    display: none; 
-    width: 100%; 
-    max-width: 100vw; /* Hindrer at innholdet blir bredere enn skjermen */
-    padding: 20px; 
-    box-sizing: border-box;
-}
-
-/* Plasserer headeren ryddig */
-.header-title { 
-    font-size: 24px; 
-    font-weight: 800; 
-    margin-bottom: 20px; 
-    display: flex; 
-    justify-content: space-between; 
-    align-items: center; 
-    flex-wrap: wrap; 
-    gap: 10px;
-}
         
-        /* Input uten piler */
-        input[type=number] { 
-            width: 100%; height: 100%; background: transparent; border: none; color: inherit; 
-            text-align: center; font-weight: bold; outline: none; -moz-appearance: textfield; 
+        /* Grunnleggende oppsett */
+        body { 
+            background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
+            margin: 0; min-height: 100vh; display: block; /* Endret fra flex for å unngå sentreringskrøll */
         }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        
+        /* LOGIN SKJERM - Denne skal være midtstilt */
+        #login-screen { 
+            display: none; /* Styres av JS */
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg); align-items: center; justify-content: center; z-index: 1000;
+        }
+        .login-box { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 320px; text-align: center; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 12px; background: #27272a; border: 1px solid var(--border); color: white; border-radius: 6px; box-sizing: border-box; outline: none; }
+        .login-box button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
 
+        /* HOVEDINNHOLD */
+        #main-content { display: none; padding: 20px; width: 100%; box-sizing: border-box; }
+        
+        .header-title { font-size: 28px; font-weight: 800; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+        .toolbar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+        button, select { background-color: #27272a; color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
+
+        .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; height: 280px; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
+        .stat-card { background: var(--card); border: 1px solid var(--border); padding: 20px; border-radius: 12px; text-align: center; }
+        .stat-label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; }
+        .stat-value { font-size: 22px; font-weight: 800; color: white; margin-top: 5px; }
+
+        /* Tabell-kontainer som tillater rulling */
+        .scroll-container { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--card); }
+        table { border-collapse: collapse; min-width: 3200px; table-layout: fixed; }
+        th, td { border: 1px solid var(--border); text-align: center; width: 65px; height: 45px; }
+        
+        /* Sticky kolonne for navn */
+        .name-col { position: sticky; left: 0; background: #18181b; z-index: 20; width: 280px; text-align: left !important; padding: 0 15px; border-right: 2px solid var(--border); }
+        .name-content { display: flex; align-items: center; gap: 10px; }
+        
+        .header-year { background: #09090b; font-size: 14px; font-weight: 900; height: 35px; }
+        .header-month { background: #111113; font-size: 12px; font-weight: bold; height: 30px; color: #3b82f6; text-transform: uppercase; }
+        .header-week { background: #18181b; font-size: 10px; color: var(--text-dim); height: 30px; }
+        
         .row-summary { cursor: pointer; background: #1c1c21; font-weight: 600; }
         .row-project { background: #121215; font-size: 12px; color: var(--text-dim); }
         .row-total { background: #09090b; font-weight: 800; border-top: 2px solid var(--accent); color: white; }
-        
+
+        /* Input uten piler */
+        input[type=number] { width: 100%; height: 100%; background: transparent; border: none; color: inherit; text-align: center; font-weight: bold; outline: none; -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
         .remove-proj-btn { opacity: 0; color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 18px; }
         .row-project:hover .remove-proj-btn { opacity: 1; }
         .nc-tag { color: #3b82f6; font-weight: bold; }
@@ -85,7 +87,7 @@
     <div id="main-content">
         <div class="header-title">
             <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
-            <button onclick="handleLogout()" style="font-size:12px; padding:5px 10px;">Logg ut</button>
+            <button onclick="handleLogout()" style="background:var(--danger); border:none; font-size:12px; padding:8px 15px;">Logg ut</button>
         </div>
 
         <div class="toolbar">
@@ -121,7 +123,6 @@
         <button id="deleteBtn" style="width:100%; margin-top:5px; background:var(--danger); border:none; padding:12px; border-radius:6px;" onclick="deleteProject()">Slett</button>
         <button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button>
     </div></div>
-
     <div id="assignModal" class="modal-overlay"><div class="modal-content"><h3>Tildel prosjekt</h3><input type="text" id="projectSearch" placeholder="Søk..." oninput="filterProjects()"><div id="projectList" style="max-height:300px; overflow-y:auto;"></div><button onclick="closeModals()" style="width:100%; margin-top:10px;">Avbryt</button></div></div>
 
     <script>
@@ -134,31 +135,27 @@
         let chartInstance = null;
         let activeAssignee = null;
 
-        // AUTH & LOGIN
+        // AUTH
         async function checkUser() {
             const { data: { session } } = await db.auth.getSession();
             if (session) {
                 document.getElementById('login-screen').style.display = 'none';
                 document.getElementById('main-content').style.display = 'block';
-                document.body.style.display = 'block';
                 init();
             } else {
                 document.getElementById('login-screen').style.display = 'flex';
                 document.getElementById('main-content').style.display = 'none';
             }
         }
-
         async function handleLogin() {
             const email = document.getElementById('email').value.trim().toLowerCase();
             const password = document.getElementById('password').value;
             const { error } = await db.auth.signInWithPassword({ email, password });
-            if (error) { document.getElementById('login-error').innerText = "Feil e-post eller passord."; }
-            else { location.reload(); }
+            if (error) document.getElementById('login-error').innerText = "Feil e-post eller passord."; else location.reload();
         }
-
         async function handleLogout() { await db.auth.signOut(); location.reload(); }
 
-        // FARGEKODING
+        // FARGER
         function getCellColor(v) {
             if (!v || v === 0) return "transparent";
             if (v > 100) return "rgba(239, 68, 68, 0.3)";
@@ -168,14 +165,9 @@
             return `rgba(${r}, ${g}, ${b}, 0.2)`;
         }
 
-        // DATAHENTING
         async function init() { buildTimeline(52); await fetchData(); renderUI(); }
         async function fetchData() { 
-            const [emp, proj, ass] = await Promise.all([
-                db.from('ansatte').select('*'), 
-                db.from('prosjekter').select('*').order('navn'), 
-                db.from('bemanning').select('*')
-            ]);
+            const [emp, proj, ass] = await Promise.all([db.from('ansatte').select('*'), db.from('prosjekter').select('*').order('navn'), db.from('bemanning').select('*')]);
             data.employees = emp.data || []; data.projects = proj.data || []; data.assignments = ass.data || [];
         }
 
@@ -190,7 +182,6 @@
             }
         }
 
-        // LAGRING OG UI-OPPDATERING
         async function save(ansatt, prosjekt, uke, prosent) {
             const id = `${ansatt}_${prosjekt}_${uke}`;
             const num = prosent === '' ? 0 : Number(prosent);
@@ -220,6 +211,8 @@
         }
 
         function updateStats() {
+            const view = document.getElementById('viewFilter').value;
+            if (view !== 'prosjekter') return;
             const fakt = data.projects.filter(p => !p.er_ufakturerbart);
             const nc = fakt.filter(p => p.er_nc);
             let totalT = 0, nordicT = 0;
@@ -313,24 +306,16 @@
             renderTotaler(); updateChart();
         }
 
-        // MODAL LOGIKK
+        // MODALER
         function openNewProjectModal() { document.getElementById('modalTitle').innerText = "Nytt Prosjekt"; document.getElementById('editProjId').value = ""; document.getElementById('projNo').value = ""; document.getElementById('projName').value = ""; document.querySelector('input[name="projType"][value="nordic"]').checked = true; document.getElementById('deleteBtn').style.display = "none"; document.getElementById('projectModal').style.display = "flex"; }
         function openEditProjectModal(id, nr, navn, isNC, isUF) { document.getElementById('modalTitle').innerText = "Rediger Prosjekt"; document.getElementById('editProjId').value = id; document.getElementById('projNo').value = nr; document.getElementById('projName').value = navn; if (isNC) document.querySelector('input[name="projType"][value="nc"]').checked = true; else if (isUF) document.querySelector('input[name="projType"][value="uf"]').checked = true; else document.querySelector('input[name="projType"][value="nordic"]').checked = true; document.getElementById('deleteBtn').style.display = "block"; document.getElementById('projectModal').style.display = "flex"; }
-        async function saveProject() { 
-            const id = document.getElementById('editProjId').value; const nr = document.getElementById('projNo').value; const navn = document.getElementById('projName').value; const type = document.querySelector('input[name="projType"]:checked').value;
-            const isNC = type === 'nc', isUF = type === 'uf';
-            if(!navn) return;
-            if(id) await db.from('prosjekter').update({ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }).eq('id', id);
-            else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }]);
-            await fetchData(); renderUI(); closeModals(); 
-        }
+        async function saveProject() { const id = document.getElementById('editProjId').value; const nr = document.getElementById('projNo').value; const navn = document.getElementById('projName').value; const type = document.querySelector('input[name="projType"]:checked').value; const isNC = type === 'nc', isUF = type === 'uf'; if(!navn) return; if(id) await db.from('prosjekter').update({ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }).eq('id', id); else await db.from('prosjekter').insert([{ prosjektnummer: nr, navn: navn, er_nc: isNC, er_ufakturerbart: isUF }]); await fetchData(); renderUI(); closeModals(); }
         async function removeProjectFromEmployee(ansatt, prosjekt) { if (confirm(`Fjerne "${prosjekt}" fra ${ansatt}?`)) { await db.from('bemanning').delete().eq('ansatt', ansatt).eq('prosjekt', prosjekt); await fetchData(); renderUI(); } }
-        async function deleteProject() { const id = document.getElementById('editProjId').value; if(confirm(`Slette hele prosjektet fra systemet?`)) { await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
+        async function deleteProject() { const id = document.getElementById('editProjId').value; if(confirm(`Slette hele prosjektet?`)) { await db.from('prosjekter').delete().eq('id', id); await fetchData(); renderUI(); closeModals(); } }
         function openAssignModal(ansatt) { activeAssignee = ansatt; document.getElementById('assignModal').style.display = 'flex'; filterProjects(); }
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
         function filterProjects() { const s = document.getElementById('projectSearch').value.toLowerCase(); const l = document.getElementById('projectList'); l.innerHTML = ''; data.projects.filter(p => p.navn.toLowerCase().includes(s)).forEach(p => { const d = document.createElement('div'); d.style.padding="10px"; d.style.cursor="pointer"; d.innerText = p.navn; d.onclick = async () => { await save(activeAssignee, p.navn, data.timeline[0].id, 0); closeModals(); await fetchData(); renderUI(); }; l.appendChild(d); }); }
 
-        // CHART
         function updateChart() {
             const filter = document.getElementById('groupFilter').value; const fEmps = data.employees.filter(e => filter === 'Alle' || e.gruppe === filter); const nEmps = fEmps.length || 1;
             const tData = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s / nEmps); });
@@ -339,7 +324,7 @@
             chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.timeline.map(t => 'U'+t.week), datasets: [{ label: 'Total', data: tData, borderColor: '#3b82f6', fill: true, tension: 0.4 }, { label: 'Fakturerbar', data: fData, borderColor: '#ffffff', borderDash: [5, 5], tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 120 } } } });
         }
 
-        checkUser(); // Sjekker login ved start
+        checkUser();
     </script>
 </body>
 </html>
