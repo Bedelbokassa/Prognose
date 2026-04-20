@@ -87,6 +87,7 @@
     <div id="main-content">
         <div class="header-title">
             <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
+            <button onclick="changePassword()" style="background:#3f3f46; border:none; font-size:12px; padding:8px 15px; margin-right:10px;">Bytt passord</button>
             <button onclick="handleLogout()" style="background:var(--danger); border:none; font-size:12px; padding:8px 15px;">Logg ut</button>
         </div>
 
@@ -154,6 +155,14 @@
             if (error) document.getElementById('login-error').innerText = "Feil e-post eller passord."; else location.reload();
         }
         async function handleLogout() { await db.auth.signOut(); location.reload(); }
+        async function changePassword() {
+    const ny = prompt("Skriv inn nytt passord (minst 6 tegn):");
+    if (!ny || ny.length < 6) return alert("Avbrutt: Passordet må være minst 6 tegn.");
+    
+    const { error } = await db.auth.updateUser({ password: ny });
+    if (error) alert("Feil ved bytte av passord: " + error.message);
+    else alert("Passordet ditt er nå oppdatert!");
+}
 
         // FARGER
         function getCellColor(v) {
@@ -167,7 +176,7 @@
 
         async function init() { buildTimeline(52); await fetchData(); renderUI(); }
         async function fetchData() { 
-            const [emp, proj, ass] = await Promise.all([db.from('ansatte').select('*'), db.from('prosjekter').select('*').order('navn'), db.from('bemanning').select('*')]);
+          const [emp, proj, ass] = await Promise.all([db.from('ansatte').select('*').order('navn'), db.from('prosjekter').select('*').order('navn'), db.from('bemanning').select('*')]);
             data.employees = emp.data || []; data.projects = proj.data || []; data.assignments = ass.data || [];
         }
 
