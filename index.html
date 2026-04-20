@@ -11,12 +11,20 @@
             --bg: #0f0f12; --card: #18181b; --border: #27272a; 
             --accent: #3b82f6; --text: #f4f4f5; --text-dim: #a1a1aa; --danger: #ef4444; 
         }
-        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; padding: 20px; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+        
+        /* Login skjerm */
+        #login-screen { display: flex; flex-direction: column; align-items: center; width: 100%; }
+        .login-box { background: var(--card); padding: 40px; border-radius: 12px; border: 1px solid var(--border); width: 320px; text-align: center; }
+        .login-box input { width: 100%; padding: 12px; margin-bottom: 12px; background: #27272a; border: 1px solid var(--border); color: white; border-radius: 6px; box-sizing: border-box; outline: none; }
+        .login-box button { width: 100%; padding: 12px; background: var(--accent); color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer; }
+
+        /* Hovedinnhold - Skjult som standard */
+        #main-content { display: none; width: 100%; padding: 20px; align-self: flex-start; }
         
         .header-title { font-size: 28px; font-weight: 800; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
         .toolbar { display: flex; gap: 12px; margin-bottom: 20px; align-items: center; background: var(--card); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
-        button, select { background-color: #27272a; color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; transition: 0.2s; }
-        button:hover { background-color: #3f3f46; }
+        button, select { background-color: #27272a; color: white; border: 1px solid var(--border); padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; }
 
         .chart-container { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-bottom: 20px; height: 280px; }
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px; }
@@ -27,27 +35,15 @@
         .scroll-container { width: 100%; overflow-x: auto; border-radius: 12px; border: 1px solid var(--border); background: var(--card); }
         table { border-collapse: collapse; min-width: 3200px; table-layout: fixed; }
         th, td { border: 1px solid var(--border); text-align: center; width: 65px; height: 45px; }
+        .name-col { position: sticky; left: 0; background: #18181b; z-index: 20; width: 280px; text-align: left !important; padding: 0 15px; border-right: 2px solid var(--border); }
         
-        .name-col { 
-            position: sticky; left: 0; background: #18181b; z-index: 20; 
-            width: 280px; text-align: left !important; padding: 0 15px; border-right: 2px solid var(--border); 
-        }
-        .name-content { display: flex; align-items: center; gap: 10px; }
-        
-        .header-year { background: #09090b; font-size: 14px; font-weight: 900; height: 35px; }
-        .header-month { background: #111113; font-size: 12px; font-weight: bold; height: 30px; color: #3b82f6; text-transform: uppercase; }
-        .header-week { background: #18181b; font-size: 10px; color: var(--text-dim); height: 30px; }
-        
+        /* Fargekoding og Input */
+        input[type=number] { width: 100%; height: 100%; background: transparent; border: none; color: inherit; text-align: center; font-weight: bold; outline: none; -moz-appearance: textfield; }
+        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+
         .row-summary { cursor: pointer; background: #1c1c21; font-weight: 600; }
         .row-project { background: #121215; font-size: 12px; color: var(--text-dim); }
         .row-total { background: #09090b; font-weight: 800; border-top: 2px solid var(--accent); color: white; }
-
-        input[type=number] { 
-            width: 100%; height: 100%; background: transparent; border: none; color: inherit; 
-            text-align: center; font-weight: bold; outline: none; -moz-appearance: textfield; 
-        }
-        input::-webkit-outer-spin-button, input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-
         .remove-proj-btn { opacity: 0; color: var(--danger); background: transparent; border: none; cursor: pointer; font-size: 18px; }
         .row-project:hover .remove-proj-btn { opacity: 1; }
         .nc-tag { color: #3b82f6; font-weight: bold; }
@@ -60,28 +56,41 @@
 </head>
 <body>
 
-    <div class="header-title">
-        <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
+    <div id="login-screen">
+        <div class="login-box">
+            <h2 style="margin-bottom: 20px;">Studio 5</h2>
+            <input type="email" id="email" placeholder="E-post">
+            <input type="password" id="password" placeholder="Passord">
+            <button onclick="handleLogin()">Logg inn</button>
+            <p id="login-error" style="color:var(--danger); font-size:12px; margin-top:15px;"></p>
+        </div>
     </div>
 
-    <div class="toolbar">
-        <select id="viewFilter" onchange="renderUI()"><option value="ansatte">Vis: Ansatte</option><option value="prosjekter">Vis: Prosjekter</option></select>
-        <select id="groupFilter" onchange="renderUI()"><option value="Alle">Alle Team</option><option value="Sigurd">Sigurd</option><option value="Carl">Carl</option></select>
-        <button onclick="openNewProjectModal()" style="background:var(--accent); border:none; font-weight:600;">+ Nytt Prosjekt</button>
-        <div id="saveStatus" style="margin-left: auto; color: #4ade80; font-size: 12px;"></div>
-    </div>
+    <div id="main-content">
+        <div class="header-title">
+            <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
+            <button onclick="handleLogout()" style="font-size:12px; padding:5px 10px;">Logg ut</button>
+        </div>
 
-    <div id="chartSection" class="chart-container"><canvas id="utilizationChart"></canvas></div>
+        <div class="toolbar">
+            <select id="viewFilter" onchange="renderUI()"><option value="ansatte">Vis: Ansatte</option><option value="prosjekter">Vis: Prosjekter</option></select>
+            <select id="groupFilter" onchange="renderUI()"><option value="Alle">Alle Team</option><option value="Sigurd">Sigurd</option><option value="Carl">Carl</option></select>
+            <button onclick="openNewProjectModal()" style="background:var(--accent); border:none; font-weight:600;">+ Nytt Prosjekt</button>
+            <div id="saveStatus" style="margin-left: auto; color: #4ade80; font-size: 12px;"></div>
+        </div>
 
-    <div id="statsSection" class="stats-grid" style="display:none;">
-        <div class="stat-card"><div class="stat-label">Nordic prosjekter</div><div id="statNordicCount" class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">NC prosjekter</div><div id="statNC" class="stat-value">0</div></div>
-        <div class="stat-card"><div class="stat-label">% NC prosjekter</div><div id="statPercNC" class="stat-value">0%</div></div>
-        <div class="stat-card"><div class="stat-label">Nordic timer (% av faktur.)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
-    </div>
+        <div id="chartSection" class="chart-container"><canvas id="utilizationChart"></canvas></div>
 
-    <div class="scroll-container">
-        <table><thead id="tableHead"></thead><tbody id="tableBody"></tbody><tfoot id="tableFoot"></tfoot></table>
+        <div id="statsSection" class="stats-grid" style="display:none;">
+            <div class="stat-card"><div class="stat-label">Nordic prosjekter</div><div id="statNordicCount" class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">NC prosjekter</div><div id="statNC" class="stat-value">0</div></div>
+            <div class="stat-card"><div class="stat-label">% NC prosjekter</div><div id="statPercNC" class="stat-value">0%</div></div>
+            <div class="stat-card"><div class="stat-label">Nordic timer (% av faktur.)</div><div id="statNordicTimer" class="stat-value">0%</div></div>
+        </div>
+
+        <div class="scroll-container">
+            <table><thead id="tableHead"></thead><tbody id="tableBody"></tbody><tfoot id="tableFoot"></tfoot></table>
+        </div>
     </div>
 
     <div id="projectModal" class="modal-overlay"><div class="modal-content">
@@ -93,10 +102,9 @@
             <label><input type="radio" name="projType" value="uf"> Ufakt.</label>
         </div>
         <button onclick="saveProject()" style="width:100%; background:var(--accent); border:none; padding:12px; border-radius:6px; font-weight:600;">Lagre</button>
-        <button id="deleteBtn" style="width:100%; margin-top:5px; background:var(--danger); border:none; padding:12px; border-radius:6px;" onclick="deleteProject()">Slett fra system</button>
+        <button id="deleteBtn" style="width:100%; margin-top:5px; background:var(--danger); border:none; padding:12px; border-radius:6px;" onclick="deleteProject()">Slett</button>
         <button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button>
     </div></div>
-
     <div id="assignModal" class="modal-overlay"><div class="modal-content"><h3>Tildel prosjekt</h3><input type="text" id="projectSearch" placeholder="Søk..." oninput="filterProjects()"><div id="projectList" style="max-height:300px; overflow-y:auto;"></div><button onclick="closeModals()" style="width:100%; margin-top:10px;">Avbryt</button></div></div>
 
     <script>
@@ -109,17 +117,30 @@
         let chartInstance = null;
         let activeAssignee = null;
 
-        // HJELPEFUNKSJON FOR FARGEKODING (Gradient gul-grønn, rød over 100)
-        function getCellColor(value) {
-            if (value === 0 || value === "" || value === null) return "transparent";
-            if (value > 100) return "rgba(239, 68, 68, 0.4)"; // Rød
-            
-            // Regner ut farge mellom gul (rgb 234, 179, 8) og grønn (rgb 34, 197, 94)
-            const ratio = value / 100;
-            const r = Math.round(234 - (234 - 34) * ratio);
-            const g = Math.round(179 + (197 - 179) * ratio);
-            const b = Math.round(8 + (94 - 8) * ratio);
-            return `rgba(${r}, ${g}, ${b}, 0.25)`;
+        // AUTH
+        async function checkUser() {
+            const { data: { session } } = await db.auth.getSession();
+            if (session) {
+                document.getElementById('login-screen').style.display = 'none';
+                document.getElementById('main-content').style.display = 'block';
+                document.body.style.display = 'block';
+                init();
+            }
+        }
+        async function handleLogin() {
+            const e = document.getElementById('email').value; const p = document.getElementById('password').value;
+            const { error } = await db.auth.signInWithPassword({ email: e, password: p });
+            if (error) document.getElementById('login-error').innerText = "Feil e-post eller passord."; else location.reload();
+        }
+        async function handleLogout() { await db.auth.signOut(); location.reload(); }
+
+        function getCellColor(v) {
+            if (!v || v === 0) return "transparent";
+            if (v > 100) return "rgba(239, 68, 68, 0.3)";
+            const r = Math.round(234 - (234 - 34) * (v / 100));
+            const g = Math.round(179 + (197 - 179) * (v / 100));
+            const b = Math.round(8 + (94 - 8) * (v / 100));
+            return `rgba(${r}, ${g}, ${b}, 0.2)`;
         }
 
         async function init() { buildTimeline(52); await fetchData(); renderUI(); }
@@ -162,7 +183,7 @@
                 if (cell) {
                     cell.textContent = sum > 0 ? sum + '%' : '-';
                     cell.style.backgroundColor = getCellColor(sum);
-                    cell.style.color = sum > 100 ? "#f87171" : (sum > 0 ? "#fff" : "var(--text-dim)");
+                    cell.style.color = sum > 100 ? "#f87171" : "#fff";
                 }
             });
         }
@@ -285,7 +306,7 @@
             chartInstance = new Chart(ctx, { type: 'line', data: { labels: data.timeline.map(t => 'U'+t.week), datasets: [{ label: 'Total', data: tData, borderColor: '#3b82f6', fill: true, tension: 0.4 }, { label: 'Fakturerbar', data: fData, borderColor: '#ffffff', borderDash: [5, 5], tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 120 } } } });
         }
 
-        init();
+        checkUser();
     </script>
 </body>
 </html>
