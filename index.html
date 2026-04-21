@@ -255,6 +255,7 @@
             const view = document.getElementById('viewFilter').value;
             document.getElementById('chartSection').style.display = view === 'ansatte' ? 'block' : 'none';
             document.getElementById('statsSection').style.display = view === 'prosjekter' ? 'grid' : 'none';
+            document.getElementById('groupFilter').style.display = view === 'ansatte' ? 'inline-block' : 'none';
             const head = document.getElementById('tableHead');
             let yrs = '<th class="name-col header-year"></th>', mos = '<th class="name-col header-month">Navn / Nr</th>', wks = '<th class="name-col header-week"></th>';
             let curY = data.timeline[0].year, yC = 0, curM = data.timeline[0].month, mC = 0;
