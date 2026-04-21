@@ -15,12 +15,12 @@
         /* Grunnleggende oppsett */
         body { 
             background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; 
-            margin: 0; min-height: 100vh; display: block; /* Endret fra flex for å unngå sentreringskrøll */
+            margin: 0; min-height: 100vh; display: block; 
         }
         
         /* LOGIN SKJERM - Denne skal være midtstilt */
         #login-screen { 
-            display: none; /* Styres av JS */
+            display: none; 
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--bg); align-items: center; justify-content: center; z-index: 1000;
         }
@@ -85,18 +85,20 @@
     </div>
 
     <div id="main-content">
-<div class="header-title">
-    <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
-    
-    <div style="display: flex; gap: 10px;">
-        <button onclick="changePassword()" style="background:#3f3f46; border:none; font-size:12px; padding:8px 15px;">Bytt passord</button>
-        <button onclick="handleLogout()" style="background:var(--danger); border:none; font-size:12px; padding:8px 15px;">Logg ut</button>
-    </div>
-</div>
+        <div class="header-title">
+            <span>Studio 5 Prognose <span id="samletProsent" style="font-size: 14px; color: var(--text-dim); font-weight: normal; margin-left: 20px;"></span></span>
+            <div style="display: flex; gap: 10px;">
+                <button onclick="changePassword()" style="background:#3f3f46; border:none; font-size:12px; padding:8px 15px;">Bytt passord</button>
+                <button onclick="handleLogout()" style="background:var(--danger); border:none; font-size:12px; padding:8px 15px;">Logg ut</button>
+            </div>
         </div>
 
         <div class="toolbar">
-            <select id="viewFilter" onchange="renderUI()"><option value="ansatte">Vis: Ansatte</option><option value="prosjekter">Vis: Prosjekter</option></select>
+            <select id="viewFilter" onchange="renderUI()">
+                <option value="ansatte">Vis: Ansatte</option>
+                <option value="ledig">Vis: Ledig kapasitet</option>
+                <option value="prosjekter">Vis: Prosjekter</option>
+            </select>
             <select id="groupFilter" onchange="renderUI()"><option value="Alle">Alle Team</option><option value="Sigurd">Sigurd</option><option value="Carl">Carl</option></select>
             <button onclick="openNewProjectModal()" style="background:var(--accent); border:none; font-weight:600;">+ Nytt Prosjekt</button>
             <div id="saveStatus" style="margin-left: auto; color: #4ade80; font-size: 12px;"></div>
@@ -159,14 +161,14 @@
             if (error) document.getElementById('login-error').innerText = "Feil e-post eller passord."; else location.reload();
         }
         async function handleLogout() { await db.auth.signOut(); location.reload(); }
+        
         async function changePassword() {
-    const ny = prompt("Skriv inn nytt passord (minst 6 tegn):");
-    if (!ny || ny.length < 6) return alert("Avbrutt: Passordet må være minst 6 tegn.");
-    
-    const { error } = await db.auth.updateUser({ password: ny });
-    if (error) alert("Feil ved bytte av passord: " + error.message);
-    else alert("Passordet ditt er nå oppdatert!");
-}
+            const ny = prompt("Skriv inn nytt passord (minst 6 tegn):");
+            if (!ny || ny.length < 6) return alert("Avbrutt: Passordet må være minst 6 tegn.");
+            const { error } = await db.auth.updateUser({ password: ny });
+            if (error) alert("Feil ved bytte av passord: " + error.message);
+            else alert("Passordet ditt er nå oppdatert!");
+        }
 
         // FARGER
         function getCellColor(v) {
@@ -177,8 +179,13 @@
             const b = Math.round(8 + (94 - 8) * (v / 100));
             return `rgba(${r}, ${g}, ${b}, 0.2)`;
         }
+        function getLedigColor(v) {
+            if (v <= 0) return "transparent";
+            return `rgba(74, 222, 128, ${(v / 100) * 0.4})`; 
+        }
 
         async function init() { buildTimeline(52); await fetchData(); renderUI(); }
+        
         async function fetchData() { 
           const [emp, proj, ass] = await Promise.all([db.from('ansatte').select('*').order('navn'), db.from('prosjekter').select('*').order('navn'), db.from('bemanning').select('*')]);
             data.employees = emp.data || []; data.projects = proj.data || []; data.assignments = ass.data || [];
@@ -212,13 +219,21 @@
             const row = Array.from(document.querySelectorAll('.row-summary')).find(r => r.textContent.includes(ansattName));
             if (!row) return;
             const cells = row.querySelectorAll('td');
+            const view = document.getElementById('viewFilter').value;
             data.timeline.forEach((t, i) => {
                 const sum = data.assignments.filter(a => a.ansatt === ansattName && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
                 const cell = cells[i + 1];
                 if (cell) {
-                    cell.textContent = sum > 0 ? sum + '%' : '-';
-                    cell.style.backgroundColor = getCellColor(sum);
-                    cell.style.color = sum > 100 ? "#f87171" : "#fff";
+                    if (view === 'ledig') {
+                        const ledig = 100 - sum;
+                        cell.textContent = ledig + '%';
+                        cell.style.backgroundColor = getLedigColor(ledig);
+                        cell.style.color = ledig < 0 ? "#f87171" : "#fff";
+                    } else {
+                        cell.textContent = sum > 0 ? sum + '%' : '-';
+                        cell.style.backgroundColor = getCellColor(sum);
+                        cell.style.color = sum > 100 ? "#f87171" : "#fff";
+                    }
                 }
             });
         }
@@ -243,23 +258,31 @@
             const gF = document.getElementById('groupFilter').value;
             const view = document.getElementById('viewFilter').value;
             const foot = document.getElementById('tableFoot');
-            if (view !== 'ansatte') { foot.innerHTML = ''; return; }
+            if (view === 'prosjekter') { foot.innerHTML = ''; return; }
+            
             const fEmps = data.employees.filter(e => gF === 'Alle' || e.gruppe === gF);
-            let h = `<tr class="row-total"><td class="name-col">TOTAL UTNYTTELSE (TEAM)</td>`;
+            let h = `<tr class="row-total"><td class="name-col">${view === 'ledig' ? 'GJENNOMSNITT LEDIG' : 'TOTAL UTNYTTELSE (TEAM)'}</td>`;
             data.timeline.forEach(t => {
                 let total = 0;
                 fEmps.forEach(e => { total += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0); });
                 const avg = Math.round(total / (fEmps.length || 1));
-                h += `<td style="background-color: ${getCellColor(avg)}">${avg}%</td>`;
+                
+                if (view === 'ledig') {
+                    const avgLedig = 100 - avg;
+                    h += `<td style="background-color: ${getLedigColor(avgLedig)}">${avgLedig}%</td>`;
+                } else {
+                    h += `<td style="background-color: ${getCellColor(avg)}">${avg}%</td>`;
+                }
             });
             foot.innerHTML = h + '</tr>';
         }
 
         function renderUI() {
             const view = document.getElementById('viewFilter').value;
-            document.getElementById('chartSection').style.display = view === 'ansatte' ? 'block' : 'none';
+            document.getElementById('chartSection').style.display = (view === 'ansatte' || view === 'ledig') ? 'block' : 'none';
             document.getElementById('statsSection').style.display = view === 'prosjekter' ? 'grid' : 'none';
-            document.getElementById('groupFilter').style.display = view === 'ansatte' ? 'inline-block' : 'none';
+            document.getElementById('groupFilter').style.display = (view === 'ansatte' || view === 'ledig') ? 'inline-block' : 'none';
+            
             const head = document.getElementById('tableHead');
             let yrs = '<th class="name-col header-year"></th>', mos = '<th class="name-col header-month">Navn / Nr</th>', wks = '<th class="name-col header-week"></th>';
             let curY = data.timeline[0].year, yC = 0, curM = data.timeline[0].month, mC = 0;
@@ -270,18 +293,26 @@
                 if (i === data.timeline.length - 1) { yrs += `<th colspan="${yC}" class="header-year">${curY}</th>`; mos += `<th colspan="${mC}" class="header-month">${curM}</th>`; }
             });
             head.innerHTML = `<tr>${yrs}</tr><tr>${mos}</tr><tr>${wks}</tr>`;
+            
             const gF = document.getElementById('groupFilter').value;
             const body = document.getElementById('tableBody'); body.innerHTML = '';
-            if (view === 'ansatte') {
+            
+            if (view === 'ansatte' || view === 'ledig') {
                 data.employees.filter(e => gF === 'Alle' || e.gruppe === gF).forEach(emp => {
                     const tr = document.createElement('tr'); tr.className='row-summary';
                     tr.onclick = (e) => { if(!e.target.closest('button')) { expanded.has(emp.navn) ? expanded.delete(emp.navn) : expanded.add(emp.navn); renderUI(); } };
                     let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(emp.navn)?'▼':'▶'}</span> ${emp.navn}</div></td>`;
                     data.timeline.forEach(t => {
                         const sum = data.assignments.filter(a => a.ansatt === emp.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
-                        h += `<td style="background-color: ${getCellColor(sum)}; color: ${sum > 100 ? '#f87171' : '#fff'}">${sum > 0 ? sum + '%' : '-'}</td>`;
+                        if (view === 'ledig') {
+                            const ledig = 100 - sum;
+                            h += `<td style="background-color: ${getLedigColor(ledig)}; color: ${ledig < 0 ? '#f87171' : '#fff'}">${ledig}%</td>`;
+                        } else {
+                            h += `<td style="background-color: ${getCellColor(sum)}; color: ${sum > 100 ? '#f87171' : '#fff'}">${sum > 0 ? sum + '%' : '-'}</td>`;
+                        }
                     });
                     tr.innerHTML = h; body.appendChild(tr);
+                    
                     if (expanded.has(emp.navn)) {
                         [...new Set(data.assignments.filter(a => a.ansatt === emp.navn).map(a => a.prosjekt))].forEach(pn => {
                             const pDb = data.projects.find(p => p.navn === pn);
