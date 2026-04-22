@@ -10,7 +10,7 @@
         :root { 
             --bg: #0f0f12; --card: #18181b; --border: #27272a; 
             --accent: #3b82f6; --text: #f4f4f5; --text-dim: #a1a1aa; --danger: #ef4444;
-            --unsure: #423b1c; /* Diskret gul/brun for usikker */
+            --unsure: #423b1c; 
         }
         
         body { background-color: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; margin: 0; min-height: 100vh; }
@@ -48,7 +48,6 @@
         .row-project { background: #121215; font-size: 12px; }
         .row-total { background: #09090b; font-weight: 800; border-top: 2px solid var(--accent); }
 
-        /* Input Styles */
         input.cell-input { width: 100%; height: 100%; background: transparent; border: none; color: inherit; text-align: center; font-weight: bold; outline: none; }
         .cell-locked { color: var(--text-dim); font-style: italic; font-size: 11px; cursor: not-allowed; }
         .cell-unsure { background-color: var(--unsure) !important; }
@@ -109,7 +108,7 @@
         </div>
     </div>
 
-    <div id="projectModal" class="modal-overlay"><div class="modal-content"><h3 id="modalTitle">Prosjekt</h3><input type="hidden" id="editProjId"><input type="text" id="projNo" placeholder="Prosjektnummer"><input type="text" id="projName" placeholder="Navn..."><div style="display:flex; gap:15px; margin-bottom:15px;"><label><input type="radio" name="projType" value="nordic" checked> Nordic</label><label><input type="radio" name="projType" value="nc"> NC</label><label><input type="radio" name="projType" value="uf"> Ufakt.</label></div><button onclick="saveProject()" style="width:100%; background:var(--accent); border:none; padding:12px; border-radius:6px; font-weight:600;">Lagre</button><button id="deleteBtn" style="width:100%; margin-top:5px; background:var(--danger); border:none; padding:12px; border-radius:6px;" onclick="deleteProject()">Slett</button><button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button></div></div>
+    <div id="projectModal" class="modal-overlay"><div class="modal-content"><h3 id="modalTitle">Prosjekt</h3><input type="hidden" id="editProjId"><input type="text" id="projNo" placeholder="Prosjektnummer"><input type="text" id="projName" placeholder="Navn..."><div style="display:flex; gap:15px; margin-bottom:15px; font-size:13px;"><label><input type="radio" name="projType" value="nordic" checked> Nordic</label><label><input type="radio" name="projType" value="nc"> NC</label><label><input type="radio" name="projType" value="uf"> Ufakt.</label></div><button onclick="saveProject()" style="width:100%; background:var(--accent); border:none; padding:12px; border-radius:6px; font-weight:600;">Lagre</button><button id="deleteBtn" style="width:100%; margin-top:5px; background:var(--danger); border:none; padding:12px; border-radius:6px;" onclick="deleteProject()">Slett</button><button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button></div></div>
     <div id="assignModal" class="modal-overlay"><div class="modal-content"><h3>Tildel prosjekt</h3><input type="text" id="projectSearch" placeholder="Søk etter prosjekt..." oninput="filterProjects()"><div id="projectList" style="max-height:300px; overflow-y:auto; margin-top:10px;"></div><button onclick="closeModals()" style="width:100%; margin-top:10px;">Avbryt</button></div></div>
     <div id="employeeModal" class="modal-overlay"><div class="modal-content"><h3>Rediger Ansatt</h3><input type="hidden" id="editEmpId"><input type="text" id="editEmpName" disabled style="opacity:0.5;"><select id="editEmpGroup"><option value="Alle">Ingen gruppe</option><option value="Sigurd">Sigurd</option><option value="Carl">Carl</option></select><button onclick="saveEmployee()" style="width:100%; background:var(--accent); border:none; padding:12px;">Lagre</button><button onclick="closeModals()" style="width:100%; margin-top:5px;">Avbryt</button></div></div>
 
@@ -142,16 +141,13 @@
             if (ny && ny.length >= 6) { const { error } = await db.auth.updateUser({ password: ny }); alert(error ? error.message : "Oppdatert!"); }
         }
 
-        // Tidslinje: 12 uker bak, 52 uker frem
         function buildTimeline() {
             const now = new Date();
             const start = new Date();
             start.setDate(start.getDate() - (start.getDay() || 7) - (12 * 7) + 1); 
-            
             const currentUke = getWeekNumber(now);
             const currentYear = now.getFullYear().toString().slice(-2);
             currentWeekId = `u${currentUke}/${currentYear}`;
-
             for(let i = 0; i < 64; i++) {
                 const d = new Date(start); d.setDate(d.getDate() + (i * 7));
                 const w = getWeekNumber(d);
@@ -187,7 +183,6 @@
             data.assignments = ass.data || [];
         }
 
-        // Fargekoder (brukes kun i sammendrag og ledig-visning)
         function getCellColor(v) {
             if (!v || v === 0) return "transparent";
             if (v > 100) return "rgba(239, 68, 68, 0.3)";
@@ -195,12 +190,10 @@
         }
         function getLedigColor(v) { return v <= 0 ? "transparent" : `rgba(74, 222, 128, ${(v / 100) * 0.4})`; }
 
-        // LAGRING
         async function save(ansatt, prosjekt, uke, inVal) {
             const isUnsure = inVal.toLowerCase().endsWith('u');
             const val = parseFloat(inVal.replace('u', '')) || 0;
             const id = `${ansatt}_${prosjekt}_${uke}`;
-            
             const { error } = await db.from('bemanning').upsert({ id, ansatt, prosjekt, uke, prosent: val, er_usikker: isUnsure });
             if (!error) {
                 const ex = data.assignments.find(a => a.id === id);
@@ -211,7 +204,6 @@
             }
         }
 
-        // DOBBELKLIKK: FYLL MÅNEDEN
         async function fillMonth(ansatt, prosjekt, ukeId, value) {
             const currentIdx = data.timeline.findIndex(t => t.id === ukeId);
             const currentMonth = data.timeline[currentIdx].month;
@@ -227,12 +219,10 @@
         function renderUI() {
             const view = document.getElementById('viewFilter').value;
             const gF = document.getElementById('groupFilter').value;
-            
             document.getElementById('chartSection').style.display = (view === 'ansatte' || view === 'ledig') ? 'block' : 'none';
             document.getElementById('statsSection').style.display = view === 'prosjekter' ? 'grid' : 'none';
             document.getElementById('groupFilter').style.display = view === 'prosjekter' ? 'none' : 'inline-block';
 
-            // Header
             const head = document.getElementById('tableHead');
             let yrs = '<th class="name-col header-year"></th>', mos = '<th class="name-col header-month">Navn</th>', wks = '<th class="name-col header-week"></th>';
             let curY = data.timeline[0].year, yC = 0, curM = data.timeline[0].month, mC = 0;
@@ -245,7 +235,6 @@
             });
             head.innerHTML = `<tr>${yrs}</tr><tr>${mos}</tr><tr>${wks}</tr>`;
 
-            // Body
             const body = document.getElementById('tableBody'); body.innerHTML = '';
             if (view === 'ansatte' || view === 'ledig') {
                 data.employees.filter(e => gF === 'Alle' || e.gruppe === gF).forEach(emp => {
@@ -254,15 +243,10 @@
                     let h = `<td class="name-col"><div class="name-content"><span>${expanded.has(emp.navn)?'▼':'▶'}</span> ${emp.navn} <button class="edit-btn" onclick="openEditEmployeeModal('${emp.id}','${emp.navn}','${emp.gruppe}')">✎</button></div></td>`;
                     data.timeline.forEach(t => {
                         const sum = data.assignments.filter(a => a.ansatt === emp.navn && a.uke === t.id).reduce((s, a) => s + Number(a.prosent), 0);
-                        if (view === 'ledig') {
-                            const l = 100 - sum;
-                            h += `<td style="background-color:${getLedigColor(l)}; color:${l<0?'#f87171':'#fff'}">${l}%</td>`;
-                        } else {
-                            h += `<td style="background-color:${getCellColor(sum)}; color:${sum>100?'#f87171':'#fff'}">${sum>0?sum+'%':'-'}</td>`;
-                        }
+                        if (view === 'ledig') { const l = 100 - sum; h += `<td style="background-color:${getLedigColor(l)}; color:${l<0?'#f87171':'#fff'}">${l}%</td>`; }
+                        else { h += `<td style="background-color:${getCellColor(sum)}; color:${sum>100?'#f87171':'#fff'}">${sum>0?sum+'%':'-'}</td>`; }
                     });
                     tr.innerHTML = h; body.appendChild(tr);
-
                     if (expanded.has(emp.navn)) {
                         [...new Set(data.assignments.filter(a => a.ansatt === emp.navn).map(a => a.prosjekt))].forEach(pn => {
                             const pDb = data.projects.find(p => p.navn === pn);
@@ -270,15 +254,9 @@
                             let ph = `<td class="name-col" style="padding-left:30px;"><div class="name-content"><span class="${pDb?.er_nc?'nc-tag':(pDb?.er_ufakturerbart?'uf-tag':'')}">${pDb?.prosjektnummer ? pDb.prosjektnummer + ' - ' : ''}${pn}</span><button class="remove-proj-btn" onclick="removeProjectFromEmployee('${emp.navn}', '${pn}')">×</button></div></td>`;
                             data.timeline.forEach(t => {
                                 const a = data.assignments.find(x => x.ansatt === emp.navn && x.prosjekt === pn && x.uke === t.id);
-                                const v = a ? a.prosent : '';
-                                const isU = a ? a.er_usikker : false;
-                                const isLocked = t.isPast && t.id !== currentWeekId;
-                                
-                                if (isLocked) {
-                                    ph += `<td class="cell-locked">${v}${isU?'u':''}</td>`;
-                                } else {
-                                    ph += `<td class="${isU?'cell-unsure':''}" title="Dobbelklikk for å fylle måneden"><input class="cell-input" value="${v}${isU?'u':''}" onchange="save('${emp.navn}','${pn}','${t.id}',this.value)" ondblclick="fillMonth('${emp.navn}','${pn}','${t.id}',this.value)"></td>`;
-                                }
+                                const v = a ? a.prosent : ''; const isU = a ? a.er_usikker : false; const isLocked = t.isPast && t.id !== currentWeekId;
+                                if (isLocked) ph += `<td class="cell-locked">${v}${isU?'u':''}</td>`;
+                                else ph += `<td class="${isU?'cell-unsure':''}" title="Dobbelklikk for å fylle måneden"><input class="cell-input" value="${v}${isU?'u':''}" onchange="save('${emp.navn}','${pn}','${t.id}',this.value)" ondblclick="fillMonth('${emp.navn}','${pn}','${t.id}',this.value)"></td>`;
                             });
                             ptr.innerHTML = ph; body.appendChild(ptr);
                         });
@@ -286,7 +264,6 @@
                     }
                 });
             } else {
-                // Prosjektvisning (samme logikk som før)
                 data.projects.forEach(p => {
                     const tr = document.createElement('tr'); tr.className='row-summary';
                     tr.onclick = () => { expanded.has(p.navn) ? expanded.delete(p.navn) : expanded.add(p.navn); renderUI(); };
@@ -299,8 +276,7 @@
                             let ph = `<td class="name-col" style="padding-left:30px;">${an}</td>`;
                             data.timeline.forEach(t => {
                                 const a = data.assignments.find(x => x.ansatt === an && x.prosjekt === p.navn && x.uke === t.id);
-                                const v = a ? a.prosent : '';
-                                const isU = a ? a.er_usikker : false;
+                                const v = a ? a.prosent : ''; const isU = a ? a.er_usikker : false;
                                 ph += `<td class="${isU?'cell-unsure':''}">${v}${isU?'u':''}</td>`;
                             });
                             ptr.innerHTML = ph; body.appendChild(ptr);
@@ -328,27 +304,59 @@
         }
 
         function updateChart() {
+            const view = document.getElementById('viewFilter').value;
             const gF = document.getElementById('groupFilter').value;
             const fEmps = data.employees.filter(e => gF === 'Alle' || e.gruppe === gF);
             const n = fEmps.length || 1;
             
-            const total = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id && !a.er_usikker).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
-            const fakt = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => { const p = data.projects.find(x => x.navn === a.prosjekt); return a.ansatt === e.navn && a.uke === t.id && p && !p.er_ufakturerbart && !a.er_usikker; }).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
-            const unsure = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
+            const datasets = [];
+            const labels = data.timeline.map(t => 'U'+t.week);
+
+            // Sikker utnyttelse (uten 'u')
+            const totalUtil = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id && !a.er_usikker).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
+            // Total utnyttelse (inkl 'u')
+            const unsureUtil = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => a.ansatt === e.navn && a.uke === t.id).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
+
+            if (view === 'ledig') {
+                // Graf for LEDIG KAPASITET
+                datasets.push({
+                    label: 'Garantert ledig',
+                    data: totalUtil.map(v => 100 - v),
+                    borderColor: '#3b82f6',
+                    fill: false, tension: 0.3
+                });
+                datasets.push({
+                    label: 'Ledig (inkl. usikre)',
+                    data: unsureUtil.map(v => 100 - v),
+                    borderColor: '#fbbf24',
+                    borderDash: [2, 2],
+                    fill: false, tension: 0.3
+                });
+            } else {
+                // Standard graf for UTNYTTELSE
+                const faktUtil = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => { const p = data.projects.find(x => x.navn === a.prosjekt); return a.ansatt === e.navn && a.uke === t.id && p && !p.er_ufakturerbart && !a.er_usikker; }).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
+                
+                datasets.push({ label: 'Sikker Total', data: totalUtil, borderColor: '#3b82f6', fill: false, tension: 0.3 });
+                datasets.push({ label: 'Fakturerbar', data: faktUtil, borderColor: '#fff', borderDash: [5, 5], fill: false, tension: 0.3 });
+                datasets.push({ label: 'Inkl. Usikker', data: unsureUtil, borderColor: '#fbbf24', borderDash: [2, 2], fill: false, tension: 0.3 });
+            }
 
             const ctx = document.getElementById('utilizationChart').getContext('2d');
             if (chartInstance) chartInstance.destroy();
             chartInstance = new Chart(ctx, {
                 type: 'line',
-                data: {
-                    labels: data.timeline.map(t => 'U'+t.week),
-                    datasets: [
-                        { label: 'Sikker Total', data: total, borderColor: '#3b82f6', fill: false, tension: 0.3 },
-                        { label: 'Fakturerbar', data: fakt, borderColor: '#fff', borderDash: [5, 5], fill: false, tension: 0.3 },
-                        { label: 'Inkl. Usikker', data: unsure, borderColor: '#fbbf24', borderDash: [2, 2], fill: false, tension: 0.3 }
-                    ]
-                },
-                options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: 120 } } }
+                data: { labels, datasets },
+                options: { 
+                    responsive: true, 
+                    maintainAspectRatio: false, 
+                    scales: { 
+                        y: { 
+                            beginAtZero: true, 
+                            max: view === 'ledig' ? 100 : 120,
+                            title: { display: true, text: view === 'ledig' ? 'Ledig tid %' : 'Utnyttelse %', color: '#a1a1aa' }
+                        } 
+                    } 
+                }
             });
         }
 
@@ -360,20 +368,17 @@
             document.getElementById('statPercNC').innerText = fakt.length > 0 ? Math.round((nc.length / fakt.length) * 100) + '%' : '0%';
         }
 
-        // MODAL LOGIKK
         function openAssignModal(ansatt) { activeAssignee = ansatt; document.getElementById('projectSearch').value = ""; document.getElementById('assignModal').style.display = 'flex'; filterProjects(); }
         function openNewProjectModal() { document.getElementById('modalTitle').innerText="Nytt Prosjekt"; document.getElementById('editProjId').value=""; document.getElementById('projNo').value=""; document.getElementById('projName').value=""; document.getElementById('deleteBtn').style.display="none"; document.getElementById('projectModal').style.display="flex"; }
         function openEditProjectModal(id, nr, navn, isNC, isUF) { document.getElementById('modalTitle').innerText="Rediger Prosjekt"; document.getElementById('editProjId').value=id; document.getElementById('projNo').value=nr; document.getElementById('projName').value=navn; document.querySelector(`input[name="projType"][value="${isNC?'nc':(isUF?'uf':'nordic')}"]`).checked=true; document.getElementById('deleteBtn').style.display="block"; document.getElementById('projectModal').style.display="flex"; }
         function openEditEmployeeModal(id, navn, gruppe) { document.getElementById('editEmpId').value=id; document.getElementById('editEmpName').value=navn; document.getElementById('editEmpGroup').value=gruppe||'Alle'; document.getElementById('employeeModal').style.display='flex'; }
-        
         async function saveProject() { const id=document.getElementById('editProjId').value; const nr=document.getElementById('projNo').value, navn=document.getElementById('projName').value, type=document.querySelector('input[name="projType"]:checked').value; if(!navn) return; if(id) await db.from('prosjekter').update({prosjektnummer:nr, navn:navn, er_nc:type==='nc', er_ufakturerbart:type==='uf'}).eq('id', id); else await db.from('prosjekter').insert([{prosjektnummer:nr, navn:navn, er_nc:type==='nc', er_ufakturerbart:type==='uf'}]); await fetchData(); renderUI(); closeModals(); }
         async function deleteProject() { if(confirm("Slette prosjektet?")) { await db.from('prosjekter').delete().eq('id', document.getElementById('editProjId').value); await fetchData(); renderUI(); closeModals(); } }
         async function saveEmployee() { await db.from('ansatte').update({gruppe:document.getElementById('editEmpGroup').value}).eq('id', document.getElementById('editEmpId').value); await fetchData(); renderUI(); closeModals(); }
         async function removeProjectFromEmployee(ansatt, prosjekt) { if(confirm("Fjerne fra ansatt?")) { await db.from('bemanning').delete().eq('ansatt', ansatt).eq('prosjekt', prosjekt); await fetchData(); renderUI(); } }
         function closeModals() { document.querySelectorAll('.modal-overlay').forEach(m => m.style.display='none'); }
         function filterProjects() { const s=document.getElementById('projectSearch').value.toLowerCase(), l=document.getElementById('projectList'); l.innerHTML=''; data.projects.filter(p => p.navn.toLowerCase().includes(s)).forEach(p => { const d=document.createElement('div'); d.style.padding="10px"; d.style.cursor="pointer"; d.innerText=p.navn; d.onclick=async()=>{ await save(activeAssignee, p.navn, currentWeekId, '0'); closeModals(); await fetchData(); renderUI(); }; l.appendChild(d); }); }
-
-        function exportToExcel() { alert("Excel-eksport genereres... (Denne funksjonen rulles ut i neste steg)"); }
+        function exportToExcel() { alert("Excel-eksport rulles ut i neste steg."); }
 
         checkUser();
     </script>
