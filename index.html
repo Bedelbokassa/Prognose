@@ -303,13 +303,13 @@
             foot.innerHTML = h + '</tr>';
         }
 
-                function updateChart() {
+        function updateChart() {
             const view = document.getElementById('viewFilter').value;
             const gF = document.getElementById('groupFilter').value;
             const fEmps = data.employees.filter(e => gF === 'Alle' || e.gruppe === gF);
             const n = fEmps.length || 1;
             
-            // Finn forrige uke og kutt tidslinjen for grafen
+            // Kutt tidslinjen så den starter fra forrige uke
             const currentIdx = data.timeline.findIndex(t => t.id === currentWeekId);
             const startIdx = Math.max(0, currentIdx - 1); 
             const chartTimeline = data.timeline.slice(startIdx);
@@ -336,35 +336,6 @@
                 type: 'line',
                 data: { labels, datasets },
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, max: view === 'ledig' ? 100 : 120, title: { display: true, text: view === 'ledig' ? 'Ledig tid %' : 'Utnyttelse %', color: '#a1a1aa' } } } }
-            });
-        }
-
-                });
-            } else {
-                // Standard graf for UTNYTTELSE
-                const faktUtil = data.timeline.map(t => { let s = 0; fEmps.forEach(e => { s += data.assignments.filter(a => { const p = data.projects.find(x => x.navn === a.prosjekt); return a.ansatt === e.navn && a.uke === t.id && p && !p.er_ufakturerbart && !a.er_usikker; }).reduce((sum, a) => sum + Number(a.prosent), 0); }); return Math.round(s/n); });
-                
-                datasets.push({ label: 'Sikker Total', data: totalUtil, borderColor: '#3b82f6', fill: false, tension: 0.3 });
-                datasets.push({ label: 'Fakturerbar', data: faktUtil, borderColor: '#fff', borderDash: [5, 5], fill: false, tension: 0.3 });
-                datasets.push({ label: 'Inkl. Usikker', data: unsureUtil, borderColor: '#fbbf24', borderDash: [2, 2], fill: false, tension: 0.3 });
-            }
-
-            const ctx = document.getElementById('utilizationChart').getContext('2d');
-            if (chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'line',
-                data: { labels, datasets },
-                options: { 
-                    responsive: true, 
-                    maintainAspectRatio: false, 
-                    scales: { 
-                        y: { 
-                            beginAtZero: true, 
-                            max: view === 'ledig' ? 100 : 120,
-                            title: { display: true, text: view === 'ledig' ? 'Ledig tid %' : 'Utnyttelse %', color: '#a1a1aa' }
-                        } 
-                    } 
-                }
             });
         }
 
